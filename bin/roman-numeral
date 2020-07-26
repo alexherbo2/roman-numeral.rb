@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+
+require 'roman-numeral'
+require 'optparse'
+
+if STDIN.tty? && ARGV.empty?
+  STDERR.puts <<~'EOF'
+    Usage
+    ‾‾‾‾‾
+    roman-numeral [arguments]
+
+    Examples
+    ‾‾‾‾‾‾‾‾
+    $ roman-numeral 42
+    # XLII
+
+    $ roman-numeral XLII
+    # 42
+
+    $ roman-numeral 1 3
+    # I
+    # II
+    # III
+
+    $ roman-numeral 1 3 9
+    # I
+    # II
+    # III
+    # IX
+
+    $ roman-numeral --format '[%s]' --separator '-' 1 3
+    # [I]-[II]-[III]
+
+    $ echo I III | roman-numeral --separator '+' | bc
+    # 6
+  EOF
+  exit(1)
+end
+
+def main
+  options = {
+    output_method: nil,
+    exclusive: false,
+    format: '%s',
+    separator: "\n"
+  }
+
+  OptionParser.new do |parser|
+    parser.banner = "Usage: roman-numeral [arguments]"
+    parser.on("-i", "--arabic", "Convert to Arabic (Integer) numeral") { options[:output_method] = :arabic }
+    parser.on("-s", "--roman", "Convert to Roman (String) numeral") { options[:output_method] = :roman }
+    parser.on("-x", "--exclusive", "Make the range exclusive") { options[:exclusive] = true }
+    parser.on("-f FORMAT", "--format=FORMAT", "Set text format (Default: %s)") { |format| options[:format] = format }
+    parser.on("-j SEPARATOR", "--separator=SEPARATOR", "Configure separator (Default: ␤)") { |separator| options[:separator] = separator }
+    parser.on("-h", "--help", "Display a help message and quit") { puts parser; exit }
+  end.parse!
+
+  # Get stdin content
+  stdin_content = if STDIN.tty?
+    ''
+  else
+    STDIN.read
+  end
+
+  # Arguments
+  arguments = stdin_content.split + ARGV
+
+  # Output method
+  options[:output_method] ||= is_integer?(arguments.first) ? :roman : :arabic
+
+  # Parse text input and format
+  # Works on ranges
+  # Iterates over the collection in slices of <begin> to <end> range, and runs the block for each of those.
+  # Note that the last one can be smaller.
+  output = arguments
+    .lazy
+    .map { |serialized_value| deserialize(serialized_value) }
+    .map { |value| RomanNumeral.new(value) }
+    .each_slice(2)
+    .flat_map do |roman_numerals|
+      case roman_numerals.length
+      when 1
+        roman_numerals
+      when 2
+        roman_numeral_begin, roman_numeral_end = roman_numerals
+        Range.new(roman_numeral_begin, roman_numeral_end, options[:exclusive]).to_a
+      end
+    end
+    .map { |roman_numeral| options[:format] % roman_numeral.send(options[:output_method]) }
+    .to_a
+    .join(options[:separator])
+
+  # Print text output
+  puts output
+end
+
+def deserialize(value)
+  if is_integer?(value)
+    value.to_i
+  else
+    value
+  end
+end
+
+def is_integer?(string)
+  string.match?(/\A[+-]?[0-9]+\z/)
+end
+
+main
