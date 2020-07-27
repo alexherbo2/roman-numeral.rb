@@ -52,12 +52,12 @@ roman-numeral 1 3 9
 ```
 
 ``` sh
-roman-numeral --format '[%s]' --separator '-' 1 3
+roman-numeral --format '[%s]' --separator '-' 1 2 3
 # [I]-[II]-[III]
 ```
 
 ``` sh
-echo I III | roman-numeral --separator '+' | bc
+echo I II III | roman-numeral --separator '+' | bc
 # 6
 ```
 
