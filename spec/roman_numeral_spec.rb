@@ -3,7 +3,7 @@ require 'json'
 require_relative '../lib/roman-numeral'
 
 # Loads Roman numerals data from JSON.
-DATA_PATH = File.join(__dir__, '../data/roman-numerals.json')
+DATA_PATH = File.join(__dir__, 'data/roman-numerals.json')
 DATA = JSON.parse(File.read(DATA_PATH)).transform_keys(&:to_i)
 
 DATA.each do |arabic, roman|
